@@ -1,6 +1,74 @@
-# Senpai
+# Senpai Variations
 
 Senpai is an automated memory sizing tool for container applications.
+
+This repository contains ZeroPoint variants of senpai:
+
+- `senpai.py`: The [original](https://github.com/facebookincubator/senpai) version of senpai.
+- `senpai-ratio.py`: Focused on memory tiering, keeps a ratio of the cgroup's memory in RAM and the rest demoted to the slower memory tier.
+
+## System Setup
+
+### Suggested Kernel Configuration
+
+```
+CONFIG_MIGRATION=y
+CONFIG_CGROUPS=y
+CONFIG_MEMCG=y
+CONFIG_NUMA_BALANCING=y
+
+CONFIG_LRU_GEN=y
+CONFIG_LRU_GEN_ENABLED=y
+```
+
+### Runtime Setup
+
+Before starting senpai, enable memory tiering and the MGLRU:
+
+```sh
+echo 1 | sudo tee /sys/kernel/mm/numa/demotion_enabled
+echo 2 | sudo tee /proc/sys/kernel/numa_balancing
+echo y | sudo tee /sys/kernel/mm/lru_gen/enabled
+```
+
+Verify you have multiple memory tiers:
+
+```sh
+grep -H . /sys/devices/virtual/memory_tiering/*/nodelist
+```
+
+The command should report at least two tiers, with different NUMA nodes assigned to each.
+
+
+### Tiering QuickStart Example
+
+Start a stress-ng stressor that allocates 1G and assign it to a cgroup:
+
+```sh
+sudo mkdir -p /sys/fs/cgroup/cxl_test
+echo $$ | sudo tee /sys/fs/cgroup/cxl_test/cgroup.procs
+stress-ng --vm 1 --vm-bytes 1G --vm-hang 0 -t 5m
+```
+
+To keep split the memory of the processes in cgroup `cxl_test` 70-30 between
+
+- RAM (NUMA nodes 0,1)
+- CXL (NUMA node 2)
+
+run:
+
+
+```sh
+sudo ./senpai-ratio.py /sys/fs/cgroup/cxl_test/ --ram-pct 70 --ram-nodes 0 1
+```
+
+
+To see all possible arguments, check out the help text
+```sh
+./senpai-ratio.py --help
+```
+
+---
 
 ## Background
 
