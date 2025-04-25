@@ -202,7 +202,7 @@ class Senpai(object):
     def run(self):
         signal.signal(signal.SIGINT, interrupt_handler)
         while not interrupted:
-            time.sleep(1)
+            time.sleep(conf.interval)
             self.tick()
 
     def tick(self):
@@ -265,7 +265,7 @@ if __name__ == "__main__":
         help="min memory (MBs) to keep in RAM",
     )
     parser.add_argument(
-        "--interval", type=int, default=6, help="maximum adjustment interval (seconds)"
+        "--interval", type=int, default=1, help="adjustment interval (seconds)"
     )
     parser.add_argument(
         "--ram-pct",
